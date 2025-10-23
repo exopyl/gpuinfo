@@ -1,0 +1,42 @@
+name: CI Build Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        build_type: [Release, Debug]
+        architecture: [x64, Win32]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+      
+    - name: Configure CMake
+      run: |
+        cmake -B build -A ${{ matrix.architecture }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      
+    - name: Build
+      run: cmake --build build --config ${{ matrix.build_type }}
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: gpuinfo-windows-${{ matrix.architecture }}-${{ matrix.build_type }}
+        path: build/${{ matrix.build_type }}/gpuinfo.exe
+        
+    - name: Run
+      run: |
+        build/${{ matrix.build_type }}/gpuinfo.exe off
+      continue-on-error: true
